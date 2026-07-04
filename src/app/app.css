@@ -1,3 +1,8 @@
+.sync-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
 .page {
   min-height: 100vh;
   background: radial-gradient(1200px 600px at 80% -10%, #dcecec 0%, #eaf1f2 55%);

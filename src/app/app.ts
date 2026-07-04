@@ -9,6 +9,7 @@ import { WaterTestForm } from './features/water-test/water-test-form';
 import { WaterTestTrend } from './features/water-test/water-test-trend';
 import { ActivityLog } from './features/activity-log';
 import { ManageInhabitantsDialog } from './features/inhabitants/manage-inhabitants-dialog';
+import { SyncControl } from './features/sync-control';
 
 interface Chip {
     species: string;
@@ -19,7 +20,7 @@ interface Chip {
 // Dashboard 容器:注入 store、组织展示数据;弹窗开关是本地 state。
 @Component({
     selector: 'app-root',
-    imports: [DatePipe, Modal, WaterTestCard, WaterTestForm, WaterTestTrend, ActivityLog, ManageInhabitantsDialog],
+    imports: [DatePipe, Modal, WaterTestCard, WaterTestForm, WaterTestTrend, ActivityLog, ManageInhabitantsDialog, SyncControl],
     templateUrl: './app.html',
     styleUrl: './app.css',
 })
