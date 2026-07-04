@@ -6,6 +6,7 @@ import {
     addLivestock,
     addPlant,
     addWaterTest,
+    clearDeparture,
     latestWaterTest,
     markDeparture,
     updateLivestock,
@@ -65,6 +66,14 @@ export class TankStore {
 
     markPlantDeparture(id: string, date: string): void {
         this.updateCurrentTank(tank => updatePlant(tank, id, item => markDeparture(item, date)));
+    }
+
+    returnLivestock(id: string): void {
+        this.updateCurrentTank(tank => updateLivestock(tank, id, clearDeparture));
+    }
+
+    returnPlant(id: string): void {
+        this.updateCurrentTank(tank => updatePlant(tank, id, clearDeparture));
     }
 
     private updateCurrentTank(fn: (tank: Tank) => Tank): void {

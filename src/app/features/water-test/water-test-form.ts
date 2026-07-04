@@ -1,50 +1,71 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ValueRange, WaterTest, newId, todayISO } from '../../domain/tank.model';
+import { UNITS } from '../../domain/water-status';
 import { TankStore } from '../../state/tank.store';
 import { WATER_PARAMS } from './water-params';
 
+// Add test 弹窗的表单体:每个参数一个 value + 可选 max(两个都填 → ValueRange)。
 @Component({
     selector: 'water-test-form',
     imports: [ReactiveFormsModule],
     template: `
     <form [formGroup]="form" (ngSubmit)="submit()">
-      <label class="field">
-        Date
-        <input type="date" formControlName="date" />
-      </label>
+      <div class="field">
+        <span class="lbl">Date</span>
+        <input type="date" formControlName="date" class="date-input" />
+      </div>
 
-      <div class="param-rows" formGroupName="values">
+      <div class="param-grid" formGroupName="values">
         @for (param of params; track param.key) {
-          <div class="param-row" [formGroupName]="param.key">
-            <span class="param-label">{{ param.label }}</span>
-            <input type="number" step="any" placeholder="value" formControlName="value" />
-            <span>~</span>
-            <input type="number" step="any" placeholder="max (optional)" formControlName="max" />
+          <div class="param" [formGroupName]="param.key">
+            <span class="lbl">
+              {{ param.label }} <span class="unit">{{ units[param.key] }}</span>
+            </span>
+            <div class="inputs">
+              <input type="number" step="any" placeholder="value" formControlName="value" />
+              <span class="sep">–</span>
+              <input type="number" step="any" placeholder="max" formControlName="max" />
+            </div>
           </div>
         }
       </div>
 
-      <label class="field">
-        Note
-        <input type="text" formControlName="note" placeholder="optional" />
-      </label>
+      <div class="field">
+        <span class="lbl">Note</span>
+        <input type="text" formControlName="note" placeholder="Optional — e.g. did a 30% water change" />
+      </div>
 
-      @if (error()) {
-        <p class="error">{{ error() }}</p>
-      }
-      <button type="submit" [disabled]="form.invalid">Add water test</button>
+      @if (error()) { <p class="error">{{ error() }}</p> }
+
+      <div class="actions">
+        <button type="button" class="btn-ghost" (click)="cancel.emit()">Cancel</button>
+        <button type="submit" class="btn-primary">Save test</button>
+      </div>
     </form>
   `,
     styles: `
-    form { display: flex; flex-direction: column; gap: 0.75rem; }
-    .field { display: flex; flex-direction: column; gap: 0.25rem; max-width: 16rem; }
-    .param-rows { display: flex; flex-direction: column; gap: 0.5rem; }
-    .param-row { display: flex; align-items: center; gap: 0.5rem; }
-    .param-label { width: 10rem; }
-    .param-row input { width: 7rem; }
-    .error { color: #c0392b; margin: 0; }
-    button { align-self: flex-start; }
+    form { margin-top: 4px; }
+    .lbl { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #5a7371; margin-bottom: 6px; }
+    .unit { text-transform: none; letter-spacing: 0; color: #a3b6b4; font-weight: 600; }
+    .field { margin-bottom: 18px; }
+    .date-input { max-width: 220px; }
+    input {
+      width: 100%; border: 1px solid #cfe0df; border-radius: 8px; padding: 10px; font: inherit;
+      font-size: 14px; color: #12312f; background: #f7fafa; box-sizing: border-box;
+    }
+    input:focus { outline: none; border-color: #0f8a8d; background: #fff; }
+    .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 18px; margin-bottom: 18px; }
+    .inputs { display: flex; align-items: center; gap: 8px; }
+    .inputs input { text-align: right; font-feature-settings: 'tnum'; padding: 9px 10px; min-width: 0; flex: 1 1 0; }
+    .sep { color: #b3c5c3; }
+    .error { color: #c0392b; margin: 0 0 12px; font-size: 13px; }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 2px; }
+    button { font: inherit; font-weight: 700; font-size: 15px; border-radius: 8px; cursor: pointer; }
+    .btn-ghost { border: 1px solid #dcecec; background: #fff; color: #5a7371; font-weight: 600; padding: 11px 18px; }
+    .btn-ghost:hover { background: #f7fafa; }
+    .btn-primary { border: none; background: #0f8a8d; color: #fff; padding: 11px 22px; }
+    .btn-primary:hover { filter: brightness(1.06); }
   `,
 })
 export class WaterTestForm {
@@ -52,9 +73,11 @@ export class WaterTestForm {
     private readonly store = inject(TankStore);
 
     readonly params = WATER_PARAMS;
+    readonly units = UNITS;
     readonly error = signal('');
+    readonly saved = output<void>();
+    readonly cancel = output<void>();
 
-    // 每个参数两个输入:只填 value 存 number,两个都填存 ValueRange
     readonly form = this.fb.group({
         date: this.fb.nonNullable.control(todayISO(), Validators.required),
         note: this.fb.nonNullable.control(''),
@@ -91,5 +114,6 @@ export class WaterTestForm {
         this.store.addWaterTest(test);
         this.error.set('');
         this.form.reset({ date: todayISO(), note: '' });
+        this.saved.emit();
     }
 }

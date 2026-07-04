@@ -115,3 +115,57 @@ export function updatePlant(tank: Tank, id: string, fn: (item: AquaticPlant) => 
         aquaticPlants: tank.aquaticPlants?.map(item => (item.id === id ? fn(item) : item)),
     };
 }
+
+/** 撤销「离开」标记(Manage 里的 Return)—— 不可变地删掉 departureDate */
+export function clearDeparture<T extends Livestock | AquaticPlant>(item: T): T {
+    const { departureDate, ...rest } = item;
+    return rest as T;
+}
+
+// ---------- 活动日志(纯派生,不落任何新数据) ----------
+
+export interface ActivityEvent {
+    date: string; // ISO
+    category: 'setup' | 'test' | 'livestock' | 'plant' | 'update' | 'remove';
+    title: string;
+    detail?: string;
+    color?: string; // livestock 用自己的颜色覆盖分类色
+}
+
+/** 把水质记录 + 生物/水草事件合成一条倒序时间线(最新在前,最多 limit 条) */
+export function activityLog(tank: Tank, limit = 10): ActivityEvent[] {
+    const events: ActivityEvent[] = [];
+    if (tank.startDate) events.push({ date: tank.startDate, category: 'setup', title: 'Tank started' });
+
+    for (const wt of tank.waterTests ?? []) {
+        events.push({ date: wt.date, category: 'test', title: 'Water test logged', detail: wt.note });
+    }
+
+    const addItem = (item: Livestock | AquaticPlant, category: 'livestock' | 'plant', color?: string) => {
+        const hist = sortByDate(item.countHistory);
+        if (hist[0]) {
+            events.push({
+                date: item.onBoardDate ?? hist[0].date,
+                category,
+                color,
+                title: `Added ${hist[0].count}× ${item.species}`,
+            });
+        }
+        for (let i = 1; i < hist.length; i++) {
+            const arrow = hist[i].count >= hist[i - 1].count ? '↑' : '↓';
+            events.push({
+                date: hist[i].date,
+                category: 'update',
+                title: `${item.species} ${hist[i - 1].count} → ${hist[i].count}`,
+                detail: hist[i].reason ? `${arrow} ${hist[i].reason}` : `${arrow} count updated`,
+            });
+        }
+        if (item.departureDate) {
+            events.push({ date: item.departureDate, category: 'remove', title: `${item.species} removed` });
+        }
+    };
+    for (const ls of tank.livestock ?? []) addItem(ls, 'livestock', ls.color);
+    for (const pl of tank.aquaticPlants ?? []) addItem(pl, 'plant');
+
+    return [...events].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
+}

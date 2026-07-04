@@ -1,59 +1,83 @@
 .page {
-  max-width: 960px;
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 80% -10%, #dcecec 0%, #eaf1f2 55%);
+  padding: 26px 24px 48px;
+  box-sizing: border-box;
+}
+.shell {
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 20px;
 }
 
-header h1 {
-  margin: 0;
-}
-
-.meta {
-  color: #666;
-  margin: 0.25rem 0 0;
-}
-
-.panel {
+.card {
   background: #fff;
-  border: 1px solid #e4e4e4;
+  border: 1px solid #dcecec;
   border-radius: 8px;
-  padding: 1rem 1.25rem;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  box-shadow: 0 1px 2px rgba(18, 49, 47, 0.04);
 }
 
-.panel h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.15rem;
+/* ---------- header ---------- */
+.header { padding: 24px 28px; }
+.header-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.title-block { min-width: 240px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #5a8180; }
+h1 {
+  font-family: 'Newsreader', serif; font-weight: 500; font-size: 40px; line-height: 1.02;
+  margin: 6px 0 12px; color: #0f2e2c; letter-spacing: -0.01em;
+}
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px;
+  background: #eef5f4; border: 1px solid #dcecec; font-size: 13px; font-weight: 600; color: #2c4f4d;
 }
 
-.panel h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-  color: #444;
+.actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; min-width: 186px; }
+.btn-primary {
+  appearance: none; border: none; background: #0f8a8d; color: #fff; font: inherit; font-weight: 700;
+  font-size: 15px; padding: 12px 20px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(15, 138, 141, 0.32);
 }
+.btn-primary:hover { filter: brightness(1.06); }
+.plus { font-size: 18px; line-height: 1; }
+.btn-outline {
+  appearance: none; border: 1px solid #0f8a8d; background: #fff; color: #0f8a8d; font: inherit;
+  font-weight: 700; font-size: 15px; padding: 11px 20px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;
+}
+.btn-outline:hover { background: #f2fafa; }
 
-.water-grid {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) 2fr;
-  gap: 1.25rem;
-  align-items: start;
+.inhabitants {
+  margin-top: 20px; padding-top: 18px; border-top: 1px solid #eef2f2;
+  display: flex; flex-wrap: wrap; gap: 14px 40px;
 }
+.inh-group { min-width: 200px; }
+.inh-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8aa19f; margin-bottom: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; border-radius: 999px;
+  background: #f6faf9; border: 1px solid #e4ecec; font-size: 13.5px; font-weight: 600; color: #2c4f4d; white-space: nowrap;
+}
+.chip-dot { width: 9px; height: 9px; border-radius: 50%; }
+.chip-count { color: #8aa19f; font-weight: 700; }
+.chip-empty { font-size: 13px; color: #9aacaa; }
 
-@media (max-width: 700px) {
-  .water-grid {
-    grid-template-columns: 1fr;
-  }
-}
+/* ---------- columns ---------- */
+.columns { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.col-left { flex: 3 1 540px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+.col-right { flex: 2 1 320px; min-width: 300px; }
 
-details {
-  margin-top: 1rem;
+/* ---------- modal header (Add test) ---------- */
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+.modal-title { font-family: 'Newsreader', serif; font-weight: 500; font-size: 26px; margin: 0; color: #0f2e2c; }
+.modal-sub { margin: 4px 0 0; font-size: 13px; color: #7d9391; }
+.modal-x {
+  appearance: none; border: 1px solid #dcecec; background: #f7fafa; width: 34px; height: 34px;
+  border-radius: 8px; font-size: 18px; color: #5a7371; cursor: pointer; line-height: 1; flex: 0 0 auto;
 }
+.modal-x:hover { background: #eef2f2; }
 
-details summary {
-  cursor: pointer;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
+.no-tank { padding: 24px; }

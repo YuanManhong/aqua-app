@@ -1,30 +1,53 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TankStore } from './state/tank.store';
-import { todayISO } from './domain/tank.model';
+import { currentCount } from './domain/tank.logic';
+import { PLANT_COLOR } from './features/ui/tokens';
+import { Modal } from './features/ui/modal';
 import { WaterTestCard } from './features/water-test/water-test-card';
 import { WaterTestForm } from './features/water-test/water-test-form';
-import { WaterTestList } from './features/water-test/water-test-list';
 import { WaterTestTrend } from './features/water-test/water-test-trend';
-import { InhabitantList } from './features/inhabitants/inhabitant-list';
-import { InhabitantForm } from './features/inhabitants/inhabitant-form';
+import { ActivityLog } from './features/activity-log';
+import { ManageInhabitantsDialog } from './features/inhabitants/manage-inhabitants-dialog';
 
-// Dashboard 容器:注入 store、组织数据;展示组件只拿 input/output
+interface Chip {
+    species: string;
+    countLabel: string;
+    dotColor: string;
+}
+
+// Dashboard 容器:注入 store、组织展示数据;弹窗开关是本地 state。
 @Component({
-  selector: 'app-root',
-  imports: [DatePipe, WaterTestCard, WaterTestForm, WaterTestList, WaterTestTrend, InhabitantList, InhabitantForm],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+    selector: 'app-root',
+    imports: [DatePipe, Modal, WaterTestCard, WaterTestForm, WaterTestTrend, ActivityLog, ManageInhabitantsDialog],
+    templateUrl: './app.html',
+    styleUrl: './app.css',
 })
 export class App {
-  readonly store = inject(TankStore);
-  readonly todayISO = todayISO;
+    readonly store = inject(TankStore);
 
-  onLivestockCount(e: { id: string; count: number; reason?: string }): void {
-    this.store.addLivestockCount(e.id, { date: todayISO(), count: e.count, reason: e.reason });
-  }
+    readonly addTestOpen = signal(false);
+    readonly manageOpen = signal(false);
 
-  onPlantCount(e: { id: string; count: number; reason?: string }): void {
-    this.store.addPlantCount(e.id, { date: todayISO(), count: e.count, reason: e.reason });
-  }
+    readonly daysIn = computed(() => {
+        const tank = this.store.currentTank();
+        if (!tank) return 0;
+        return Math.max(0, Math.round((Date.now() - Date.parse(tank.startDate + 'T00:00:00')) / 86400000));
+    });
+
+    readonly livestockChips = computed<Chip[]>(() =>
+        this.store.activeInhabitants().livestock.map(i => ({
+            species: i.species,
+            countLabel: '×' + currentCount(i),
+            dotColor: i.color || '#c0392b',
+        })),
+    );
+
+    readonly plantChips = computed<Chip[]>(() =>
+        this.store.activeInhabitants().aquaticPlants.map(i => ({
+            species: i.species,
+            countLabel: '×' + currentCount(i),
+            dotColor: PLANT_COLOR,
+        })),
+    );
 }

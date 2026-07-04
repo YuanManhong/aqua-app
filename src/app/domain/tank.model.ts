@@ -6,6 +6,7 @@ export interface Tank {
     id: string;
     name: string;
     startDate: string;
+    volume?: string;
     waterTests?: WaterTest[];
     livestock?: Livestock[];
     aquaticPlants?: AquaticPlant[];

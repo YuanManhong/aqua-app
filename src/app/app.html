@@ -1,61 +1,88 @@
 @if (store.currentTank(); as tank) {
-  <main class="page">
-    <header>
-      <h1>{{ tank.name }}</h1>
-      <p class="meta">Started {{ tank.startDate | date }}</p>
-    </header>
+  <div class="page">
+    <div class="shell">
 
-    <section class="panel">
-      <h2>Water quality</h2>
-      <div class="water-grid">
-        <div>
-          <h3>Latest test</h3>
-          @if (store.latestTest(); as latest) {
-            <water-test-card [test]="latest" />
-          } @else {
-            <p class="meta">No tests yet.</p>
-          }
+      <!-- ============ HEADER ============ -->
+      <header class="card header">
+        <div class="header-top">
+          <div class="title-block">
+            <div class="eyebrow">Freshwater · Planted · Low-tech</div>
+            <h1>{{ tank.name }}</h1>
+            <div class="pills">
+              @if (tank.volume) { <span class="pill">{{ tank.volume }}</span> }
+              <span class="pill">Started {{ tank.startDate | date: 'MMM d, y' }}</span>
+              <span class="pill">{{ daysIn() }} days in</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-primary" (click)="addTestOpen.set(true)">
+              <span class="plus">+</span> Add test
+            </button>
+            <button class="btn-outline" (click)="manageOpen.set(true)">Manage inhabitants</button>
+          </div>
         </div>
-        <div>
-          <h3>Trend</h3>
+
+        <div class="inhabitants">
+          <div class="inh-group">
+            <div class="inh-label">Livestock</div>
+            <div class="chips">
+              @for (c of livestockChips(); track c.species) {
+                <span class="chip">
+                  <span class="chip-dot" [style.background]="c.dotColor"></span>
+                  {{ c.species }} <span class="chip-count">{{ c.countLabel }}</span>
+                </span>
+              } @empty {
+                <span class="chip-empty">None yet</span>
+              }
+            </div>
+          </div>
+          <div class="inh-group">
+            <div class="inh-label">Plants</div>
+            <div class="chips">
+              @for (c of plantChips(); track c.species) {
+                <span class="chip">
+                  <span class="chip-dot" [style.background]="c.dotColor"></span>
+                  {{ c.species }} <span class="chip-count">{{ c.countLabel }}</span>
+                </span>
+              } @empty {
+                <span class="chip-empty">None yet</span>
+              }
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- ============ TWO COLUMNS ============ -->
+      <div class="columns">
+        <div class="col-left">
+          <water-test-card [test]="store.latestTest()" />
           <water-test-trend [tests]="tank.waterTests ?? []" />
         </div>
+        <aside class="col-right">
+          <activity-log [tank]="tank" />
+        </aside>
       </div>
+    </div>
+  </div>
 
-      <details open>
-        <summary>Add measurement</summary>
-        <water-test-form />
-      </details>
+  <!-- ============ ADD TEST MODAL ============ -->
+  @if (addTestOpen()) {
+    <ui-modal (close)="addTestOpen.set(false)">
+      <div class="modal-head">
+        <div>
+          <h2 class="modal-title">New water test</h2>
+          <p class="modal-sub">{{ tank.name }} · single value or min–max range</p>
+        </div>
+        <button class="modal-x" (click)="addTestOpen.set(false)">✕</button>
+      </div>
+      <water-test-form (saved)="addTestOpen.set(false)" (cancel)="addTestOpen.set(false)" />
+    </ui-modal>
+  }
 
-      <details>
-        <summary>History ({{ (tank.waterTests ?? []).length }})</summary>
-        <water-test-list [tests]="tank.waterTests ?? []" />
-      </details>
-    </section>
-
-    <section class="panel">
-      <h2>Livestock</h2>
-      <inhabitant-list
-        [items]="tank.livestock ?? []"
-        (addCount)="onLivestockCount($event)"
-        (depart)="store.markLivestockDeparture($event, todayISO())"
-      />
-    </section>
-
-    <section class="panel">
-      <h2>Plants</h2>
-      <inhabitant-list
-        [items]="tank.aquaticPlants ?? []"
-        (addCount)="onPlantCount($event)"
-        (depart)="store.markPlantDeparture($event, todayISO())"
-      />
-    </section>
-
-    <section class="panel">
-      <h2>Add inhabitant</h2>
-      <inhabitant-form />
-    </section>
-  </main>
+  <!-- ============ MANAGE INHABITANTS MODAL ============ -->
+  @if (manageOpen()) {
+    <manage-inhabitants-dialog (close)="manageOpen.set(false)" />
+  }
 } @else {
-  <p>No tank selected.</p>
+  <p class="no-tank">No tank selected.</p>
 }
