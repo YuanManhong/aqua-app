@@ -2,11 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { TankRepository } from './data/tank.repository';
 import { Tank } from './domain/tank.model';
-import { seedTanks } from './domain/seed-data';
 
 // repository 抽象的价值:测试里换成内存实现,不碰 localStorage
 class InMemoryTankRepository extends TankRepository {
-  tanks: Tank[] = structuredClone(seedTanks);
+  tanks: Tank[] = [];
   loadAll(): Tank[] {
     return this.tanks;
   }
@@ -29,10 +28,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the current tank name', async () => {
+  it('should show the empty state when there are no tanks', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('My First Tank');
+    expect(compiled.querySelector('.no-tank')?.textContent).toContain('No tank selected');
   });
 });

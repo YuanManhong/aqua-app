@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { User } from '@supabase/supabase-js';
 import { SUPABASE } from './supabase.client';
 
-// 认证:邮箱 magic-link(无密码)。
+// 认证:Google OAuth 一键登录(不再用邮箱 magic-link,免受内置邮件限流)。
 // user() 是全局登录状态,store 和 UI 都 react 它。
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -20,12 +20,12 @@ export class AuthService {
         this.supabase.auth.onAuthStateChange((_event, session) => this.user.set(session?.user ?? null));
     }
 
-    /** 发送登录链接到邮箱。用户点邮件里的链接后回跳本站即完成登录。 */
-    async signIn(email: string): Promise<{ error: string | null }> {
+    /** Google 一键登录。跳转到 Google 授权页,回跳后由 detectSessionInUrl 完成登录。 */
+    async signInWithGoogle(): Promise<{ error: string | null }> {
         if (!this.supabase) return { error: 'Cloud sync not configured' };
-        const { error } = await this.supabase.auth.signInWithOtp({
-            email,
-            options: { emailRedirectTo: window.location.origin + window.location.pathname },
+        const { error } = await this.supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.origin + window.location.pathname },
         });
         return { error: error?.message ?? null };
     }

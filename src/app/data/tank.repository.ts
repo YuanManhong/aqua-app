@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { Tank } from '../domain/tank.model';
-import { seedTanks } from '../domain/seed-data';
 
 const STORAGE_KEY = 'aqua-app.tanks';
 
@@ -15,13 +14,13 @@ export abstract class TankRepository {
 export class LocalStorageTankRepository extends TankRepository {
     loadAll(): Tank[] {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return seedTanks;
+        if (!raw) return [];
         try {
             return JSON.parse(raw) as Tank[];
         } catch {
-            // 数据损坏时退回种子数据,不让 app 崩掉
-            console.error('Failed to parse stored tanks, falling back to seed data');
-            return seedTanks;
+            // 数据损坏时退回空列表,不让 app 崩掉
+            console.error('Failed to parse stored tanks, falling back to empty list');
+            return [];
         }
     }
 
