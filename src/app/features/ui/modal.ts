@@ -1,11 +1,12 @@
-import { Component, output } from '@angular/core';
+import { booleanAttribute, Component, input, output } from '@angular/core';
 
 // 通用弹窗外壳:半透明背景 + 居中对话框 + 进场动画。
 // 点背景关闭;点对话框内部不冒泡。内容用 <ng-content> 投影。
+// wide 变体:全屏数据弹窗,内容自带 header/footer 和内部滚动区。
 @Component({
     selector: 'ui-modal',
     template: `
-    <div class="backdrop" (click)="close.emit()">
+    <div class="backdrop" [class.wide]="wide()" (click)="close.emit()">
       <div class="dialog" (click)="$event.stopPropagation()">
         <ng-content></ng-content>
       </div>
@@ -24,8 +25,15 @@ import { Component, output } from '@angular/core';
       padding: 26px 28px 28px; box-shadow: 0 30px 80px rgba(12,38,36,0.3);
       animation: aq-pop 0.22s cubic-bezier(0.2,0.8,0.3,1);
     }
+    .backdrop.wide { align-items: center; padding: 28px 20px; }
+    .backdrop.wide .dialog {
+      max-width: 1120px; max-height: calc(100vh - 56px);
+      padding: 0; border-radius: 14px; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
   `,
 })
 export class Modal {
     readonly close = output<void>();
+    readonly wide = input(false, { transform: booleanAttribute });
 }

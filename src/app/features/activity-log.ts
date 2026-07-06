@@ -1,8 +1,9 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Tank } from '../domain/tank.model';
-import { activityLog } from '../domain/tank.logic';
+import { Photo, Tank } from '../domain/tank.model';
+import { activityLog, sortPhotosDesc } from '../domain/tank.logic';
 import { CATEGORY_COLORS, hexToRgba } from './ui/tokens';
+import { PhotoLightbox } from './gallery/photo-lightbox';
 
 interface EventRow {
     date: string;
@@ -11,12 +12,13 @@ interface EventRow {
     color: string;
     ring: string;
     notLast: boolean;
+    photos: Photo[]; // 挂在这条事件上的照片(事件照/诊断照);点缩略图看大图
 }
 
 // 活动时间线:从 activityLog(tank) 派生,最新在前。纯展示。
 @Component({
     selector: 'activity-log',
-    imports: [DatePipe],
+    imports: [DatePipe, PhotoLightbox],
     template: `
     <section class="card">
       <div class="head">
@@ -36,11 +38,24 @@ interface EventRow {
                 <span class="date">{{ ev.date | date: 'MMM d' }}</span>
               </div>
               @if (ev.detail) { <span class="detail">{{ ev.detail }}</span> }
+              @if (ev.photos.length) {
+                <div class="thumbs">
+                  @for (photo of ev.photos; track photo.id) {
+                    <button class="thumb" type="button" [title]="photo.caption || 'View photo'" (click)="openLightbox(photo)">
+                      <img [src]="photo.src" [alt]="photo.caption || 'Tank photo'" />
+                    </button>
+                  }
+                </div>
+              }
             </div>
           </div>
         }
       </div>
     </section>
+
+    @if (lightbox(); as lb) {
+      <photo-lightbox [photos]="lb.list" [index]="lb.index" [tank]="tank()" (close)="lightbox.set(null)" />
+    }
   `,
     styles: `
     .card {
@@ -59,10 +74,25 @@ interface EventRow {
     .title { font-size: 14px; font-weight: 600; color: #12312f; line-height: 1.3; }
     .date { font-size: 12px; font-weight: 600; color: #8aa19f; white-space: nowrap; }
     .detail { display: block; margin-top: 3px; font-size: 12.5px; color: #7d9391; line-height: 1.35; }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+    .thumb {
+      appearance: none; border: 1px solid #dcecec; background: none; padding: 0;
+      width: 44px; height: 44px; border-radius: 7px; overflow: hidden; cursor: zoom-in; display: block;
+    }
+    .thumb:hover { border-color: #0f8a8d; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   `,
 })
 export class ActivityLog {
     readonly tank = input.required<Tank>();
+
+    /** lightbox v2:全量照片倒序作翻页范围,从点中的那张开始 */
+    readonly lightbox = signal<{ list: Photo[]; index: number } | null>(null);
+
+    openLightbox(photo: Photo): void {
+        const list = sortPhotosDesc(this.tank().photos ?? []);
+        this.lightbox.set({ list, index: list.findIndex(p => p.id === photo.id) });
+    }
 
     readonly rows = computed<EventRow[]>(() => {
         const events = activityLog(this.tank());
@@ -75,6 +105,7 @@ export class ActivityLog {
                 color,
                 ring: hexToRgba(color, 0.16),
                 notLast: i < events.length - 1,
+                photos: e.photos ?? [],
             };
         });
     });

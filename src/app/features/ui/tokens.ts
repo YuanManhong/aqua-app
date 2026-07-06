@@ -1,6 +1,7 @@
 // 展示层设计令牌:颜色映射 + 小工具。纯数据,供各 feature 组件共用。
 import { WaterStatus } from '../../domain/water-status';
 import { ActivityEvent } from '../../domain/tank.logic';
+import { PhotoType } from '../../domain/tank.model';
 
 /** 主题强调色(Add test / active pill / area fill 等) */
 export const ACCENT = '#0f8a8d';
@@ -36,6 +37,15 @@ export const CATEGORY_COLORS: Record<ActivityEvent['category'], string> = {
     plant: '#3f9b6b',
     update: '#e0a02a',
     remove: '#b0785f',
+    photo: '#3a6ea5',
+};
+
+/** 照片类型徽章:短标签(缩略图角标)/ 全称(lightbox)/ 底色 */
+export const PHOTO_TYPES: Record<PhotoType, { label: string; full: string; color: string }> = {
+    fts: { label: 'FTS', full: 'Full-tank shot', color: '#0f8a8d' },
+    livestock: { label: 'Livestock', full: 'Livestock', color: '#c0392b' },
+    problem: { label: 'Problem', full: 'Problem / diagnostic', color: '#d1543f' },
+    other: { label: 'Photo', full: 'Photo', color: '#7d9391' },
 };
 
 /** 植物统一用绿色作圆点 */

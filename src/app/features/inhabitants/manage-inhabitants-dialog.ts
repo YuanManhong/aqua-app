@@ -25,7 +25,7 @@ interface DepartedRow {
     isPlant: boolean;
 }
 
-// Manage inhabitants 弹窗:Current / Add new 两个标签。
+// Manage inhabitants 弹窗:默认展示当前列表,标题栏 + 按钮切到新增表单。
 // stepper 是本地草稿;Save 才落库。直接注入 store 做增改。
 @Component({
     selector: 'manage-inhabitants-dialog',
@@ -37,12 +37,14 @@ interface DepartedRow {
           <h2>Manage inhabitants</h2>
           <p class="sub">{{ tankName() }} · update counts, add, or mark departed</p>
         </div>
-        <button class="x" (click)="close.emit()">✕</button>
-      </div>
-
-      <div class="seg">
-        <button [class.active]="tab() === 'manage'" (click)="tab.set('manage')">Current</button>
-        <button [class.active]="tab() === 'add'" (click)="tab.set('add')">Add new</button>
+        <div class="head-actions">
+          @if (tab() === 'manage') {
+            <button class="x add" (click)="tab.set('add')" aria-label="Add inhabitant">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          }
+          <button class="x" (click)="close.emit()" aria-label="Close">✕</button>
+        </div>
       </div>
 
       @if (tab() === 'manage') {
@@ -109,9 +111,8 @@ interface DepartedRow {
     .sub { margin: 4px 0 0; font-size: 13px; color: #7d9391; }
     .x { border: 1px solid #dcecec; background: #f7fafa; width: 34px; height: 34px; border-radius: 8px; font-size: 18px; color: #5a7371; cursor: pointer; line-height: 1; flex: 0 0 auto; }
     .x:hover { background: #eef2f2; }
-    .seg { display: inline-flex; background: #eef4f4; border-radius: 9px; padding: 3px; gap: 3px; margin: 18px 0 4px; }
-    .seg button { appearance: none; border: none; background: transparent; color: #6d8785; font: inherit; font-weight: 600; font-size: 13.5px; padding: 8px 16px; border-radius: 7px; cursor: pointer; }
-    .seg button.active { background: #fff; color: #0f8a8d; font-weight: 700; box-shadow: 0 1px 2px rgba(18,49,47,0.12); }
+    .head-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+    .x.add { color: #0f8a8d; font-size: 20px; font-weight: 400; }
     .scroll { margin-top: 8px; max-height: 54vh; overflow: auto; }
     .group { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8aa19f; margin: 16px 0 0; }
     .group:first-child { margin-top: 8px; }

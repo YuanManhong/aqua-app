@@ -1,11 +1,14 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ValueRange, WaterTest, newId, todayISO } from '../../domain/tank.model';
-import { UNITS } from '../../domain/water-status';
+import { TYPICAL_VALUES } from '../../domain/water-status';
+import { fromDisplayValue, toDisplayNumber, toDisplayValue, unitOf } from '../../domain/hardness';
 import { TankStore } from '../../state/tank.store';
-import { WATER_PARAMS } from './water-params';
+import { SettingsStore } from '../../state/settings.store';
+import { WATER_PARAMS } from '../../domain/water-params';
 
-// Add test 弹窗的表单体:每个参数一个 value + 可选 max(两个都填 → ValueRange)。
+// Add/Edit test 弹窗的表单体:每个参数一个 value + 可选 max(两个都填 → ValueRange)。
+// 传入 editTest 即编辑模式:表单预填该条记录,保存时原 id 整条替换。
 @Component({
     selector: 'water-test-form',
     imports: [ReactiveFormsModule],
@@ -20,12 +23,12 @@ import { WATER_PARAMS } from './water-params';
         @for (param of params; track param.key) {
           <div class="param" [formGroupName]="param.key">
             <span class="lbl">
-              {{ param.label }} <span class="unit">{{ units[param.key] }}</span>
+              {{ param.label }} <span class="unit">{{ units()[param.key] }}</span>
             </span>
             <div class="inputs">
-              <input type="number" step="any" placeholder="value" formControlName="value" />
+              <input type="number" step="0.1" placeholder="value" formControlName="value" />
               <span class="sep">–</span>
-              <input type="number" step="any" placeholder="max" formControlName="max" />
+              <input type="number" step="0.1" placeholder="max" formControlName="max" />
             </div>
           </div>
         }
@@ -40,7 +43,7 @@ import { WATER_PARAMS } from './water-params';
 
       <div class="actions">
         <button type="button" class="btn-ghost" (click)="cancel.emit()">Cancel</button>
-        <button type="submit" class="btn-primary">Save test</button>
+        <button type="submit" class="btn-primary">{{ editTest() ? 'Save changes' : 'Save test' }}</button>
       </div>
     </form>
   `,
@@ -68,41 +71,83 @@ import { WATER_PARAMS } from './water-params';
     .btn-primary:hover { filter: brightness(1.06); }
   `,
 })
-export class WaterTestForm {
+export class WaterTestForm implements OnInit {
     private readonly fb = inject(FormBuilder);
     private readonly store = inject(TankStore);
+    private readonly settings = inject(SettingsStore);
 
     readonly params = WATER_PARAMS;
-    readonly units = UNITS;
+    readonly units = computed(() =>
+        Object.fromEntries(WATER_PARAMS.map(p => [p.key, unitOf(p.key, this.settings.hardnessUnit())])),
+    );
     readonly error = signal('');
+    /** 编辑模式:要改的那条记录(不传 = 新增) */
+    readonly editTest = input<WaterTest | undefined>(undefined);
     readonly saved = output<void>();
     readonly cancel = output<void>();
 
     readonly form = this.fb.group({
         date: this.fb.nonNullable.control(todayISO(), Validators.required),
         note: this.fb.nonNullable.control(''),
+        // 预填:有上次测试就沿用上次的值(区间则拆回 min/max);
+        // 上次没测该参数或首次测试 → 填该参数的「正常值」。
+        // 存储永远是度,GH/KH 按当前硬度单位换算成展示值再填。
         values: this.fb.group(
             Object.fromEntries(
-                WATER_PARAMS.map(p => [
-                    p.key,
-                    this.fb.group({
-                        value: this.fb.control<number | null>(null),
-                        max: this.fb.control<number | null>(null),
-                    }),
-                ]),
+                WATER_PARAMS.map(p => {
+                    const unit = this.settings.hardnessUnit();
+                    const stored = this.store.latestTest()?.[p.key];
+                    const prev = stored === undefined ? undefined : toDisplayValue(p.key, stored, unit);
+                    return [
+                        p.key,
+                        this.fb.group({
+                            value: this.fb.control<number | null>(
+                                prev === undefined ? toDisplayNumber(p.key, TYPICAL_VALUES[p.key], unit)
+                                    : typeof prev === 'number' ? prev
+                                    : prev.min,
+                            ),
+                            max: this.fb.control<number | null>(typeof prev === 'object' ? prev.max : null),
+                        }),
+                    ];
+                }),
             ),
         ),
     });
 
+    // 编辑模式:用被编辑记录的值覆盖默认预填(没测的参数清空,而不是留着上次/典型值)
+    ngOnInit(): void {
+        const editing = this.editTest();
+        if (!editing) return;
+        const unit = this.settings.hardnessUnit();
+        this.form.patchValue({
+            date: editing.date,
+            note: editing.note ?? '',
+            values: Object.fromEntries(
+                WATER_PARAMS.map(p => {
+                    const stored = editing[p.key];
+                    const d = stored === undefined ? undefined : toDisplayValue(p.key, stored, unit);
+                    return [p.key, {
+                        value: d === undefined ? null : typeof d === 'number' ? d : d.min,
+                        max: typeof d === 'object' ? d.max : null,
+                    }];
+                }),
+            ),
+        });
+    }
+
     submit(): void {
         const raw = this.form.getRawValue();
-        const test: WaterTest = { id: newId(), date: raw.date };
+        const editing = this.editTest();
+        const test: WaterTest = { id: editing?.id ?? newId(), date: raw.date };
 
+        // GH/KH 在 ppm 模式下输入的是 ppm,入库前换回度(存储单位唯一)
+        const unit = this.settings.hardnessUnit();
         let measured = 0;
         for (const param of WATER_PARAMS) {
             const { value, max } = raw.values[param.key] as { value: number | null; max: number | null };
             if (value === null) continue;
-            test[param.key] = max === null ? value : ({ min: value, max } satisfies ValueRange);
+            const lo = fromDisplayValue(param.key, value, unit);
+            test[param.key] = max === null ? lo : ({ min: lo, max: fromDisplayValue(param.key, max, unit) } satisfies ValueRange);
             measured++;
         }
         if (measured === 0) {
@@ -111,7 +156,8 @@ export class WaterTestForm {
         }
         if (raw.note.trim()) test.note = raw.note.trim();
 
-        this.store.addWaterTest(test);
+        if (editing) this.store.updateWaterTest(test);
+        else this.store.addWaterTest(test);
         this.error.set('');
         this.form.reset({ date: todayISO(), note: '' });
         this.saved.emit();

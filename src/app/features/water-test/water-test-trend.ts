@@ -1,9 +1,11 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { WaterParam, WaterTest } from '../../domain/tank.model';
-import { formatValueRange, seriesOf } from '../../domain/tank.logic';
-import { statusOf, THRESHOLDS, UNITS } from '../../domain/water-status';
-import { WATER_PARAMS } from './water-params';
+import { seriesOf } from '../../domain/tank.logic';
+import { statusOf, THRESHOLDS } from '../../domain/water-status';
+import { formatParamValue, unitOf } from '../../domain/hardness';
+import { WATER_PARAMS } from '../../domain/water-params';
 import { STATUS_COLORS } from '../ui/tokens';
+import { SettingsStore } from '../../state/settings.store';
 
 // 手写 SVG 趋势图:最近 10 个点、按序号等距、每个点带日期+数值标签、可选安全带。
 const W = 720;
@@ -106,6 +108,7 @@ interface ChartGeometry {
   `,
 })
 export class WaterTestTrend {
+    private readonly settings = inject(SettingsStore);
     readonly tests = input.required<WaterTest[]>();
     readonly chartStyle = input<'area' | 'line'>('area');
     readonly param = signal<WaterParam>('nitrate');
@@ -120,7 +123,7 @@ export class WaterTestTrend {
     readonly paramLabel = computed(() => {
         const key = this.param();
         const label = WATER_PARAMS.find(p => p.key === key)?.label ?? key;
-        const unit = UNITS[key];
+        const unit = unitOf(key, this.settings.hardnessUnit());
         return unit ? `${label} (${unit})` : label;
     });
 
@@ -128,6 +131,8 @@ export class WaterTestTrend {
 
     private buildGeometry(): ChartGeometry {
         const param = this.param();
+        // 几何坐标一律按存储单位(度)算——ppm 换算是线性的,位置不变;只有标签文字换算
+        const hardnessUnit = this.settings.hardnessUnit();
         const empty: ChartGeometry = { empty: true, points: [], linePoints: '', areaPath: '', gridY: [], safeZone: null };
         const pts = seriesOf(this.tests(), param).slice(-10);
         if (pts.length < 1) return empty;
@@ -159,7 +164,7 @@ export class WaterTestTrend {
                 cx,
                 cy,
                 color: STATUS_COLORS[statusOf(param, p.value)].dot,
-                valLabel: formatValueRange(raw),
+                valLabel: formatParamValue(param, raw, hardnessUnit),
                 dateLabel: p.date.slice(5), // MM-DD
                 valY: +(above ? cy - 12 : cy + 27).toFixed(1),
                 dateY: +(above ? cy - 26 : cy + 15).toFixed(1),

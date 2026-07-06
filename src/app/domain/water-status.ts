@@ -16,6 +16,17 @@ export const THRESHOLDS: Record<WaterParam, { safe: [number, number]; watch: [nu
     KH: { safe: [3, 6], watch: [2, 8] },
 };
 
+// 各参数的「正常值」:表单预填用(首次测试、或上次没测该参数时的默认值)。
+// 氨/亚硝酸盐取 0(健康缸的期望值),其余取 safe 区间的常见落点。
+export const TYPICAL_VALUES: Record<WaterParam, number> = {
+    pH: 7,
+    ammoniaAmmonium: 0,
+    nitrite: 0,
+    nitrate: 10,
+    GH: 6,
+    KH: 4,
+};
+
 export const UNITS: Record<WaterParam, string> = {
     pH: '',
     ammoniaAmmonium: 'ppm',

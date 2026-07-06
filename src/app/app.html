@@ -1,16 +1,48 @@
-@if (store.currentTank(); as tank) {
+@if (!store.hasTanks()) {
+  <first-run />
+} @else if (createOpen()) {
+  <!-- 加缸:复用 first-run 全屏表单(它有缸时自带 "← Back to tanks") -->
+  <first-run (created)="tankCreated()" (back)="createOpen.set(false)" />
+} @else if (overviewOpen()) {
+  <tank-overview (openTank)="openTank($event)" (createTank)="createOpen.set(true)" (openSettings)="settingsOpen.set(true)" />
+} @else if (store.currentTank(); as tank) {
   <div class="page">
     <div class="shell">
 
+      <!-- ============ SAMPLE BANNER ============ -->
+      @if (tank.isSample) {
+        <div class="sample-banner">
+          <span class="sample-pill">Sample</span>
+          <div class="sample-text">
+            <div class="sample-title">You’re exploring a sample tank</div>
+            <p class="sample-desc">Poke around — add tests, manage inhabitants, watch trends build. Start your own whenever you’re ready.</p>
+          </div>
+          <div class="sample-actions">
+            <button class="sample-create" (click)="store.clearSampleTank()">{{ needsSignIn() ? 'Sign in to create your own tank' : 'Create my own tank' }} <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+      }
+
       <!-- ============ HEADER ============ -->
       <header class="card header">
-        <div class="sync-bar">
-          <sync-control />
-        </div>
         <div class="header-top">
           <div class="title-block">
-            <div class="eyebrow">Freshwater · Planted · Low-tech</div>
-            <h1>{{ tank.name }}</h1>
+            @if (store.allTanks().length > 1) {
+              <button class="nav-link" type="button" (click)="overviewOpen.set(true)">← All tanks</button>
+            } @else {
+              <button class="nav-link" type="button" (click)="createOpen.set(true)">+ New tank</button>
+            }
+            @if (eyebrow()) {
+              <div class="eyebrow">{{ eyebrow() }}</div>
+            }
+            <div class="title-row">
+              <h1>{{ tank.name }}</h1>
+              <button class="edit-tank" aria-label="Edit tank" title="Edit tank" (click)="editTankOpen.set(true)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                </svg>
+              </button>
+            </div>
             <div class="pills">
               @if (tank.volume) { <span class="pill">{{ tank.volume }}</span> }
               <span class="pill">Started {{ tank.startDate | date: 'MMM d, y' }}</span>
@@ -21,7 +53,13 @@
             <button class="btn-primary" (click)="addTestOpen.set(true)">
               <span class="plus">+</span> Add test
             </button>
-            <button class="btn-outline" (click)="manageOpen.set(true)">Manage inhabitants</button>
+            <!-- 设置入口:只有单缸用户在缸页给;多缸用户的入口在总览页 -->
+            @if (store.allTanks().length === 1) {
+              <button class="btn-settings" (click)="settingsOpen.set(true)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+              </button>
+            }
           </div>
         </div>
 
@@ -52,33 +90,52 @@
               }
             </div>
           </div>
+
+          <button class="manage-inh" aria-label="Manage inhabitants" title="Manage inhabitants" (click)="manageOpen.set(true)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+            </svg>
+          </button>
         </div>
       </header>
+
+      <!-- ============ LATEST TEST (full-width band) ============ -->
+      <water-test-card
+        [test]="store.latestTest()"
+        [totalTests]="(tank.waterTests ?? []).length"
+        (viewHistory)="historyOpen.set(true)" />
 
       <!-- ============ TWO COLUMNS ============ -->
       <div class="columns">
         <div class="col-left">
-          <water-test-card [test]="store.latestTest()" />
           <water-test-trend [tests]="tank.waterTests ?? []" />
         </div>
         <aside class="col-right">
           <activity-log [tank]="tank" />
         </aside>
       </div>
+
+      <!-- ============ GALLERY ============ -->
+      <tank-gallery [tank]="tank" />
     </div>
   </div>
 
-  <!-- ============ ADD TEST MODAL ============ -->
-  @if (addTestOpen()) {
-    <ui-modal (close)="addTestOpen.set(false)">
+  <!-- ============ TEST HISTORY MODAL ============ -->
+  @if (historyOpen()) {
+    <test-history-dialog [tests]="tank.waterTests ?? []" [tankName]="tank.name" (close)="historyOpen.set(false)" (edit)="editingTest.set($event)" />
+  }
+
+  <!-- ============ ADD / EDIT TEST MODAL(放在 history 之后:编辑时要叠在它上面) ============ -->
+  @if (addTestOpen() || editingTest()) {
+    <ui-modal (close)="closeTestForm()">
       <div class="modal-head">
         <div>
-          <h2 class="modal-title">New water test</h2>
+          <h2 class="modal-title">{{ editingTest() ? 'Edit water test' : 'New water test' }}</h2>
           <p class="modal-sub">{{ tank.name }} · single value or min–max range</p>
         </div>
-        <button class="modal-x" (click)="addTestOpen.set(false)">✕</button>
+        <button class="modal-x" (click)="closeTestForm()">✕</button>
       </div>
-      <water-test-form (saved)="addTestOpen.set(false)" (cancel)="addTestOpen.set(false)" />
+      <water-test-form [editTest]="editingTest()" (saved)="closeTestForm()" (cancel)="closeTestForm()" />
     </ui-modal>
   }
 
@@ -86,6 +143,14 @@
   @if (manageOpen()) {
     <manage-inhabitants-dialog (close)="manageOpen.set(false)" />
   }
-} @else {
-  <p class="no-tank">No tank selected.</p>
+
+  <!-- ============ EDIT TANK MODAL ============ -->
+  @if (editTankOpen()) {
+    <edit-tank-dialog (close)="editTankOpen.set(false)" />
+  }
+}
+
+<!-- ============ SETTINGS MODAL(总览页和缸页共用,放在分支外) ============ -->
+@if (settingsOpen()) {
+  <settings-dialog (close)="settingsOpen.set(false)" />
 }
